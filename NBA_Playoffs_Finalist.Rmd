@@ -1,0 +1,376 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+require(tidyverse)
+require(rvest)
+require(leaps)
+require(caret)
+require(corrplot)
+require(dplyr)
+```
+
+
+```{r - Importing data from HTML file}
+players2015html <- read_html("https://www.basketball-reference.com/leagues/NBA_2016_per_game.html")
+players2015     <- players2015html %>% html_element(".stats_table") %>% html_table()
+
+players2016html <- read_html("https://www.basketball-reference.com/leagues/NBA_2017_per_game.html")
+players2016     <- players2016html %>% html_element(".stats_table") %>% html_table()
+
+players2017html <- read_html("https://www.basketball-reference.com/leagues/NBA_2018_per_game.html")
+players2017     <- players2017html %>% html_element(".stats_table") %>% html_table()
+
+players2018html <- read_html("https://www.basketball-reference.com/leagues/NBA_2019_per_game.html")
+players2018     <- players2018html %>% html_element(".stats_table") %>% html_table()
+
+players2019html <- read_html("https://www.basketball-reference.com/leagues/NBA_2020_per_game.html")
+players2019     <- players2019html %>% html_element(".stats_table") %>% html_table()
+
+players2020html <- read_html("https://www.basketball-reference.com/leagues/NBA_2021_per_game.html")
+players2020     <- players2020html %>% html_element(".stats_table") %>% html_table()
+
+players2021html <- read_html("https://www.basketball-reference.com/leagues/NBA_2022_per_game.html")
+players2021     <- players2021html %>% html_element(".stats_table") %>% html_table()
+
+
+WS2015html    <- read_html("https://www.basketball-reference.com/leagues/NBA_2016_advanced.html")
+WS2015        <- WS2015html %>% html_element(".stats_table") %>% html_table()
+
+WS2016html    <- read_html("https://www.basketball-reference.com/leagues/NBA_2017_advanced.html")
+WS2016        <- WS2016html %>% html_element(".stats_table") %>% html_table()
+
+WS2017html    <- read_html("https://www.basketball-reference.com/leagues/NBA_2018_advanced.html")
+WS2017        <- WS2017html %>% html_element(".stats_table") %>% html_table()
+
+WS2018html    <- read_html("https://www.basketball-reference.com/leagues/NBA_2019_advanced.html")
+WS2018        <- WS2018html %>% html_element(".stats_table") %>% html_table()
+
+WS2019html    <- read_html("https://www.basketball-reference.com/leagues/NBA_2020_advanced.html")
+WS2019        <- WS2019html %>% html_element(".stats_table") %>% html_table()
+
+WS2020html    <- read_html("https://www.basketball-reference.com/leagues/NBA_2021_advanced.html")
+WS2020        <- WS2020html %>% html_element(".stats_table") %>% html_table()
+
+WS2021html    <- read_html("https://www.basketball-reference.com/leagues/NBA_2022_advanced.html")
+WS2021        <- WS2021html %>% html_element(".stats_table") %>% html_table()
+
+```
+
+Processing all the team datasets first.
+
+```{r}
+WS2015[,24] <- WS2015[,24] %>% mutate_all(as.double)
+WS2016[,24] <- WS2016[,24] %>% mutate_all(as.double)
+WS2017[,24] <- WS2017[,24] %>% mutate_all(as.double)
+WS2018[,24] <- WS2018[,24] %>% mutate_all(as.double)
+WS2019[,24] <- WS2019[,24] %>% mutate_all(as.double)
+WS2020[,24] <- WS2020[,24] %>% mutate_all(as.double)
+WS2021[,24] <- WS2021[,24] %>% mutate_all(as.double)
+
+
+temp2015 <- c(WS2015[,24])
+temp2016 <- c(WS2016[,24])
+temp2017 <- c(WS2017[,24])
+temp2018 <- c(WS2018[,24])
+temp2019 <- c(WS2019[,24])
+temp2020 <- c(WS2020[,24])
+temp2021 <- c(WS2021[,24])
+
+players2015 <- cbind(players2015, temp2015)
+players2016 <- cbind(players2016, temp2016)
+players2017 <- cbind(players2017, temp2017)
+players2018 <- cbind(players2018, temp2018)
+players2019 <- cbind(players2019, temp2019)
+players2020 <- cbind(players2020, temp2020)
+players2021 <- cbind(players2021, temp2021)
+
+colnames(players2015)[31] <- "WS"
+colnames(players2016)[31] <- "WS"
+colnames(players2017)[31] <- "WS"
+colnames(players2018)[31] <- "WS"
+colnames(players2019)[31] <- "WS"
+colnames(players2020)[31] <- "WS"
+colnames(players2021)[31] <- "WS"
+```
+
+```{r}
+players2015 <- players2015 %>% 
+  filter(Rk != 'Rk')
+players2016 <- players2016 %>% 
+  filter(Rk != 'Rk')
+players2017 <- players2017 %>% 
+  filter(Rk != 'Rk')
+players2018 <- players2018 %>% 
+  filter(Rk != 'Rk')
+players2019 <- players2019 %>% 
+  filter(Rk != 'Rk')
+players2020 <- players2020 %>% 
+  filter(Rk != 'Rk')
+players2021 <- players2021 %>% 
+  filter(Rk != 'Rk')
+
+players2015[,-c(2,3,5)] <- players2015[,-c(2,3,5)] %>% 
+  mutate_all(as.double)
+players2016[,-c(2,3,5)] <- players2016[,-c(2,3,5)] %>% 
+  mutate_all(as.double)
+players2017[,-c(2,3,5)] <- players2017[,-c(2,3,5)] %>% 
+  mutate_all(as.double)
+players2018[,-c(2,3,5)] <- players2018[,-c(2,3,5)] %>% 
+  mutate_all(as.double)
+players2019[,-c(2,3,5)] <- players2019[,-c(2,3,5)] %>% 
+  mutate_all(as.double)
+players2020[,-c(2,3,5)] <- players2020[,-c(2,3,5)] %>% 
+  mutate_all(as.double)
+players2021[,-c(2,3,5)] <- players2021[,-c(2,3,5)] %>% 
+  mutate_all(as.double)
+```
+
+
+```{r}
+#grouping by team name and position, keeping only the player with most starts for the team
+players2015_processed <-  players2015 %>% 
+  arrange(Tm, Pos, desc(GS)) %>% 
+  group_by(Tm, Pos) %>%
+  filter(GS == max(GS)) %>% 
+  filter(G == max(G)) %>% 
+  filter(Tm != "TOT")
+
+players2016_processed <-  players2016 %>% 
+  arrange(Tm, Pos, desc(GS)) %>% 
+  group_by(Tm, Pos) %>% 
+  filter(GS == max(GS)) %>% 
+  filter(G == max(G)) %>% 
+  filter(Tm != "TOT")
+
+players2017_processed <- players2017 %>% 
+  arrange(Tm, Pos, desc(GS)) %>% 
+  group_by(Tm, Pos) %>% 
+  filter(GS == max(GS)) %>% 
+  filter(G == max(G)) %>% 
+  filter(Tm != "TOT")
+
+players2018_processed <-  players2018 %>% 
+  arrange(Tm, Pos, desc(GS)) %>% 
+  group_by(Tm, Pos) %>% 
+  filter(GS == max(GS)) %>% 
+  filter(G == max(G)) %>% 
+  filter(Tm != "TOT")
+
+players2019_processed <-  players2019 %>% 
+  arrange(Tm, Pos, desc(GS)) %>% 
+  group_by(Tm, Pos) %>% 
+  filter(GS == max(GS)) %>% 
+  filter(G == max(G)) %>% 
+  filter(Tm != "TOT")
+
+players2020_processed <-  players2020 %>% 
+  arrange(Tm, Pos, desc(GS)) %>% 
+  group_by(Tm, Pos) %>% 
+  filter(GS == max(GS)) %>% 
+  filter(G == max(G)) %>% 
+  filter(Tm != "TOT")
+
+players2021_processed <-  players2021 %>% 
+  arrange(Tm, Pos, desc(GS)) %>% 
+  group_by(Tm, Pos) %>% 
+  filter(GS == max(GS)) %>% 
+  filter(G == max(G)) %>% 
+  filter(Tm != "TOT")
+
+players2015_processed[is.na(players2015_processed)] <- 0
+players2016_processed[is.na(players2016_processed)] <- 0
+players2017_processed[is.na(players2017_processed)] <- 0
+players2018_processed[is.na(players2018_processed)] <- 0
+players2019_processed[is.na(players2019_processed)] <- 0
+players2020_processed[is.na(players2020_processed)] <- 0
+players2021_processed[is.na(players2021_processed)] <- 0
+
+```
+
+```{r}
+players2015ProcessedCorr = cor(players2015_processed[,-c(1,2,3,5)])
+corrplot(players2015ProcessedCorr, order = "hclust", tl.cex = .35)
+highCorr2015 = findCorrelation(players2015ProcessedCorr, .85, names = TRUE)
+highCorr2015
+```
+```{r}
+players2015_final  <- subset(players2015_processed, select = -c(FG, PTS, FGA, `2P`, FTA, TRB, `3PA`, `FG%`)) 
+
+players2016_final  <- subset(players2016_processed, select = -c(FG, PTS, FGA, `2P`, FTA, TRB, `3PA`, `FG%`)) 
+
+players2017_final  <- subset(players2017_processed, select = -c(FG, PTS, FGA, `2P`, FTA, TRB, `3PA`, `FG%`)) 
+
+players2018_final  <- subset(players2018_processed, select = -c(FG, PTS, FGA, `2P`, FTA, TRB, `3PA`, `FG%`)) 
+
+players2019_final  <- subset(players2019_processed, select = -c(FG, PTS, FGA, `2P`, FTA, TRB, `3PA`, `FG%`))
+
+players2020_final  <- subset(players2020_processed, select = -c(FG, PTS, FGA, `2P`, FTA, TRB, `3PA`, `FG%`))
+
+players2021_final  <- subset(players2021_processed, select = -c(FG, PTS, FGA, `2P`, FTA, TRB, `3PA`, `FG%`))
+```
+
+```{r}
+winShare <- rbind(players2015_final,players2016_final,players2017_final,players2018_final,players2019_final)
+
+winShare <- winShare[,c(6:23)]
+winShare[,1:17] <- scale(winShare[,1:17])
+```
+
+```{r}
+#plot(winShare$FT*log10(winShare$FT), winShare$WS)
+#abline(lm(winShare$WS ~ sqrt(winShare$FT)), col="red")
+```
+
+```{r}
+bestSubsetSelection  <- regsubsets(WS ~., nvmax = 10, data = winShare, method = c("forward","backward"))
+
+summary(bestSubsetSelection)
+```
+
+
+```{r}
+multipleRegression1   <- lm(WS ~ FT, data = winShare)
+multipleRegression2   <- lm(WS ~ FT + `eFG%`, data = winShare)
+multipleRegression3   <- lm(WS ~ FT + `eFG%` + G, data = winShare)
+multipleRegression4   <- lm(WS ~ FT + `eFG%` + G + STL, data = winShare)
+multipleRegression5   <- lm(WS ~ FT + `eFG%` + G + STL + DRB, data = winShare)
+multipleRegression6   <- lm(WS ~ FT + `eFG%` + G + STL + DRB + PF, data = winShare)
+multipleRegression7   <- lm(WS ~ FT + `eFG%` + G + STL + DRB + PF + BLK, data = winShare)
+multipleRegression8   <- lm(WS ~ FT + `eFG%` + G + STL + DRB + PF + BLK + AST, data = winShare)
+multipleRegression9   <- lm(WS ~ FT + `eFG%` + G + STL + DRB + PF + BLK + AST + TOV, data = winShare)
+multipleRegression10  <- lm(WS ~ FT + `eFG%` + G + STL + DRB + PF + BLK + AST + TOV + ORB, data = winShare)
+
+
+summary(multipleRegression1)
+summary(multipleRegression2)
+summary(multipleRegression3)
+summary(multipleRegression4)
+summary(multipleRegression5)
+summary(multipleRegression6)
+summary(multipleRegression7)
+summary(multipleRegression8)
+summary(multipleRegression9)
+summary(multipleRegression10)
+```
+
+
+```{r}
+players2020_final$year <- 2020
+players2021_final$year <- 2021
+
+head(players2020_final)
+
+testData <- rbind(players2020_final,players2021_final)
+testData[,6:22] <- scale(testData[,6:22])
+
+Xtest <- testData[,c(1:22,24)]
+Ytest <- testData$WS
+
+Yhat1       = predict.lm(multipleRegression1, Xtest)
+Yhat2       = predict.lm(multipleRegression2, Xtest)
+Yhat3       = predict.lm(multipleRegression3, Xtest)
+Yhat4       = predict.lm(multipleRegression4, Xtest)
+Yhat5       = predict.lm(multipleRegression5, Xtest)
+Yhat6       = predict.lm(multipleRegression6, Xtest)
+Yhat7       = predict.lm(multipleRegression7, Xtest)
+Yhat8       = predict.lm(multipleRegression8, Xtest)
+Yhat9       = predict.lm(multipleRegression9, Xtest)
+Yhat10       = predict.lm(multipleRegression10, Xtest)
+
+TSStest     = sum((mean(Ytest) - Ytest)**2)
+
+RSStest1    = sum((Yhat1 - Ytest)**2)
+RSStest2    = sum((Yhat2 - Ytest)**2)
+RSStest3    = sum((Yhat3 - Ytest)**2)
+RSStest4    = sum((Yhat4 - Ytest)**2)
+RSStest5    = sum((Yhat5 - Ytest)**2)
+RSStest6    = sum((Yhat6 - Ytest)**2)
+RSStest7    = sum((Yhat7 - Ytest)**2)
+RSStest8    = sum((Yhat8 - Ytest)**2)
+RSStest9    = sum((Yhat9 - Ytest)**2)
+RSStest10    = sum((Yhat10 - Ytest)**2)
+
+RsquaredTest1  = 1 - (RSStest1/TSStest)
+RsquaredTest2  = 1 - (RSStest2/TSStest)
+RsquaredTest3  = 1 - (RSStest3/TSStest)
+RsquaredTest4  = 1 - (RSStest4/TSStest)
+RsquaredTest5  = 1 - (RSStest5/TSStest)
+RsquaredTest6  = 1 - (RSStest6/TSStest)
+RsquaredTest7  = 1 - (RSStest7/TSStest)
+RsquaredTest8  = 1 - (RSStest8/TSStest)
+RsquaredTest9  = 1 - (RSStest9/TSStest)
+RsquaredTest10  = 1 - (RSStest10/TSStest)
+
+RsquaredTest1
+RsquaredTest2
+RsquaredTest3
+RsquaredTest4
+RsquaredTest5
+RsquaredTest6
+RsquaredTest7
+RsquaredTest8
+RsquaredTest9
+RsquaredTest10
+```
+
+```{r}
+testData <- cbind(testData, Yhat10)
+colnames(testData)[25] <- "YHat"
+
+testData2020 <- testData %>%
+  filter(year == 2020)
+testData2021 <- testData %>%
+  filter(year == 2021)
+
+predictionEastern2020 <- testData2020[,c(5,25)] %>%
+  group_by(Tm) %>%
+  summarise(wins = sum(YHat)) %>%
+  filter(Tm %in% c("PHI","BRK","MIL","NYK","ATL","MIA","BOS","WAS","IND","CHO","CHI","TOR","CLE","ORL","DET")) %>%
+  arrange(desc(wins))
+
+predictionWestern2020 <- testData2020[,c(5,25)] %>%
+  group_by(Tm) %>%
+  summarise(wins = sum(YHat)) %>%
+  filter(Tm %in% c("UTA","PHO","DEN","LAC","DAL","POR","LAL","GSW","MEM","SAS","NOP","SAC","MIN","OKC","HOU")) %>%
+  arrange(desc(wins))
+
+predictionEastern2021 <- testData2021[,c(5,25)] %>%
+  group_by(Tm) %>%
+  summarise(wins = sum(YHat)) %>%
+  filter(Tm %in% c("PHI","BRK","MIL","NYK","ATL","MIA","BOS","WAS","IND","CHO","CHI","TOR","CLE","ORL","DET")) %>%
+  arrange(desc(wins))
+
+predictionWestern2021 <- testData2021[,c(5,25)] %>%
+  group_by(Tm) %>%
+  summarise(wins = sum(YHat)) %>%
+  filter(Tm %in% c("UTA","PHO","DEN","LAC","DAL","POR","LAL","GSW","MEM","SAS","NOP","SAC","MIN","OKC","HOU")) %>%
+  arrange(desc(wins))
+
+
+predictionEastern2020
+predictionWestern2020
+predictionEastern2021
+predictionWestern2021
+```
+
+
+```{r}
+actualEastern2020 <- testData2020[,c(5,24)] %>%
+  group_by(Tm) %>%
+  summarise(wins = sum(WS)) %>%
+  filter(Tm %in% c("PHI","BRK","MIL","NYK","ATL","MIA","BOS","WAS","IND","CHO","CHI","TOR","CLE","ORL","DET")) %>%
+  arrange(desc(wins))
+
+actualEastern2020
+```
+
+```{r}
+#plot(subset(testData,WS > 1 & WS < 10, select = c(YHat, WS)))
+
+plot(testData$WS, testData$YHat)
+
+```
